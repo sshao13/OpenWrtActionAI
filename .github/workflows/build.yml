@@ -38,7 +38,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential clang llvm lld ccache gettext \
             libssl-dev swig unzip zstd libzstd-dev libncurses5-dev libncursesw5-dev \
-            python3-setuptools rsync git pciutils file wget
+            python3-setuptools rsync git pciutils file wget dwarves
+          # dwarves 提供 pahole 命令 —— 内核 Kconfig 里 CONFIG_DEBUG_INFO_BTF
+          # 这个选项依赖编译环境里能找到 pahole，找不到就会被静默判定为
+          # 选不上，make defconfig 阶段直接清掉，跟 .config 里写没写这行
+          # 没关系，是环境缺了这个工具
+          pahole --version
           sudo timedatectl set-timezone "$TZ"
           sudo mkdir -p /builder
           sudo chown "$USER":"$(id -gn)" /builder
