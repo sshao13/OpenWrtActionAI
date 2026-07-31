@@ -142,6 +142,14 @@ jobs:
             grep -oE 'luci-i18n-base-[a-zA-Z_-]+' "$f" | sort -u
           done | sort -u
 
+          echo ""
+          echo "==== 诊断：luci-i18n-base-zh-cn 这个符号在生成的 Config.in 里的完整上下文 ===="
+          find tmp -name '*.in' 2>/dev/null -exec grep -l 'PACKAGE_luci-i18n-base-zh-cn' {} \; | while read -r f; do
+            echo "  文件: $f"
+            grep -B8 -A2 'config PACKAGE_luci-i18n-base-zh-cn$' "$f"
+            echo "  ----"
+          done
+
       - name: 下载软件包源码
         run: |
           cd /builder/openwrt
