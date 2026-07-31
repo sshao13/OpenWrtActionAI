@@ -120,8 +120,27 @@ jobs:
           find feeds/luci -maxdepth 4 -iname '*base*' -type d 2>/dev/null
 
           echo ""
-          echo "==== make defconfig 重新跑一遍，把关于这个包的警告过滤出来 ===="
-          make defconfig 2>&1 | grep -i 'zh-cn\|luci-i18n-base' || echo "  （没有任何相关警告输出，说明是被依赖关系静默排除的，不是报错）"
+          echo "==== 诊断：luci.mk 里真实定义的语言代码列表 ===="
+          LUCI_MK="$(find feeds/luci -maxdepth 1 -name 'luci.mk' 2>/dev/null | head -n 1)"
+          if [ -z "$LUCI_MK" ]; then
+            echo "  没找到 feeds/luci/luci.mk，feeds 目录结构可能变了"
+          else
+            echo "  找到: $LUCI_MK"
+            echo "  ---- LUCI_LANGUAGES 定义 ----"
+            grep -n 'LUCI_LANGUAGES' "$LUCI_MK"
+            echo "  ---- 有没有 zh 相关的语言代码（这里能看出真实代码是 zh-cn 还是 zh_Hans 之类）----"
+            grep -oE '[a-zA-Z_-]*zh[a-zA-Z_-]*' "$LUCI_MK" | sort -u
+          fi
+
+          echo ""
+          echo "  ---- feeds/luci/modules/luci-base/Makefile 里的 LUCI_BASENAME ----"
+          grep -n 'LUCI_BASENAME\|LUCI_LANGUAGES' feeds/luci/modules/luci-base/Makefile 2>/dev/null
+
+          echo ""
+          echo "  ---- feeds 安装后自动生成的、真实存在的 CONFIG_PACKAGE_luci-i18n-* 符号（含 zh 的）----"
+          find tmp -name '*.in' 2>/dev/null -exec grep -l 'luci-i18n' {} \; | while read -r f; do
+            grep -oE 'luci-i18n-base-[a-zA-Z_-]+' "$f" | sort -u
+          done | sort -u
 
       - name: 下载软件包源码
         run: |
