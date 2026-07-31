@@ -14,28 +14,28 @@
 | 单次构建耗时 | 几分钟 | 一到两小时 |
 | 全锥形 NAT / O3-LTO | 做不到（ImageBuilder 硬限制） | 理论上可以，但这份精简版没配 |
 
-## ⚠️ 请务必知道：这一版还没有实测跑通过
+## 目前的实测进度
 
-和之前 ImageBuilder 版本不一样，**这份全源码编译配置目前还没有经过真实
-GitHub Actions 运行验证**——全源码编译一次要一两个小时，我没有条件在
-给你之前先跑一遍确认，所以下面这几处是我基于公开资料尽量配对、但
-没有 100% 把握的地方，第一次跑很可能会在这几个点上报错：
+第一次实跑（配置预检阶段）已经确认：
 
-1. **`package/feeds/daede/` 下的真实包名**：`scripts/diy-config.sh` 里
-   写的是 `CONFIG_PACKAGE_dae` `CONFIG_PACKAGE_daed`
-   `CONFIG_PACKAGE_luci-app-daede`，这是根据 kenzok8/openwrt-daede
-   项目介绍推断的，如果 `./scripts/feeds install` 之后这几个包名
-   对不上，`make defconfig` 阶段会静默把它们清掉——**这就是为什么
-   workflow 里加了一步"配置预检"**，会在真正开始编译（花一两个
-   小时）之前先检查这几个包有没有真的留在 `.config` 里，第一时间
-   告诉你缺了哪个，不用干等编译完才发现。
-2. **Go 版本**：dae 需要 Go >= 1.24，官方 `feeds/packages` 自带的
-   golang 版本可能不够新，编译时如果报 golang 相关错误，需要启用
-   `diy-feeds.sh` 里注释掉的那一行，换成社区维护的更新版 golang feed。
-3. **`kmod-nft-fullcone`**：这是第三方内核模块，官方 `openwrt/packages`
-   feed 里本来就没有，配置预检那一步大概率会提示缺失，到时候需要
-   再单独加一个提供这个包的 feed（之前 ImageBuilder 版本已经验证过
-   官方源里确实没有这个包，这个结论在全源码编译下同样成立）。
+- ✅ `CONFIG_PACKAGE_dae`、`CONFIG_PACKAGE_daed`、`CONFIG_PACKAGE_luci-app-daede`
+  包名是对的，`kenzok8/openwrt-daede` 这个 feed 接进来没问题
+- ✅ `CONFIG_PACKAGE_kmod-tcp-bbr` 没问题
+- ❌ `CONFIG_KERNEL_DEBUG_INFO_BTF` 缺失——**已定位原因**：这个内核选项
+  依赖编译环境里有 `pahole`（由 `dwarves` 这个 apt 包提供），CI 环境
+  之前没装，导致 `make defconfig` 阶段被静默清掉。已经在
+  `.github/workflows/build.yml` 里加上 `dwarves`，但这个修复本身
+  还没有实际跑一次验证过。
+
+还没验证过的地方：
+
+1. Go 版本是否够新（如果 dae 编译阶段报 golang 相关错误，需要启用
+   `diy-feeds.sh` 里注释掉的社区 golang feed）
+2. `kmod-nft-fullcone`——官方 feed 里没有，还没接第三方源，大概率
+   还是会在配置预检阶段显示缺失（不影响其它包，只是这个功能装不上，
+   之前 ImageBuilder 版本已经验证过官方源确实没有这个包）
+3. 真正完整编译能不能跑通（目前只跑到配置预检这一步，还没进入
+   一两个小时的正式编译阶段）
 
 ## 使用方法
 
