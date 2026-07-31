@@ -19,15 +19,25 @@ CONFIG_PACKAGE_dae=y
 CONFIG_PACKAGE_daed=y
 CONFIG_PACKAGE_luci-app-daede=y
 
-# ---- 内核原生 BTF（全源码编译才能真正打开这个开关）----
-# CONFIG_KERNEL_DEBUG_INFO_BTF 依赖 CONFIG_KERNEL_DEBUG_INFO 先打开、
-# 且 CONFIG_KERNEL_DEBUG_INFO_REDUCED 不能同时打开
-# （见 openwrt/config/Config-kernel.in），之前漏写了这两行前置依赖，
-# 导致 make defconfig 直接判定 BTF 选不上、静默清掉。
+# ---- 内核原生 BTF + eBPF 工具链 ----
+# 这一整段是照抄 daed 前端项目 QiuSimons/luci-app-daed 官方 README
+# 给出的必需配置（https://github.com/QiuSimons/luci-app-daed），
+# 之前只写了 BTF 相关几行，漏了 CONFIG_BPF_TOOLCHAIN_HOST=y——
+# 这一行的作用是告诉 OpenWrt "编译 eBPF 代码时直接用宿主机已经装好
+# 的 clang（build.yml 里 apt 装的那个），不要自己再从源码编译一份
+# 专用工具链"。没写这行时默认走的是另一条路径，会在编译 eBPF 相关
+# 包时报 "LLVM/clang version too old" 或找不到 clang 可执行文件。
+CONFIG_DEVEL=y
 CONFIG_KERNEL_DEBUG_INFO=y
 # CONFIG_KERNEL_DEBUG_INFO_REDUCED is not set
 CONFIG_KERNEL_DEBUG_INFO_BTF=y
 CONFIG_KERNEL_DEBUG_INFO_BTF_MODULES=y
+CONFIG_KERNEL_CGROUPS=y
+CONFIG_KERNEL_CGROUP_BPF=y
+CONFIG_KERNEL_BPF_EVENTS=y
+CONFIG_BPF_TOOLCHAIN_HOST=y
+CONFIG_KERNEL_XDP_SOCKETS=y
+CONFIG_PACKAGE_kmod-xdp-sockets-diag=y
 
 # ---- BBR 拥塞控制 ----
 CONFIG_PACKAGE_kmod-tcp-bbr=y
