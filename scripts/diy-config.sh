@@ -20,6 +20,12 @@ CONFIG_PACKAGE_daed=y
 CONFIG_PACKAGE_luci-app-daede=y
 
 # ---- 内核原生 BTF（全源码编译才能真正打开这个开关）----
+# CONFIG_KERNEL_DEBUG_INFO_BTF 依赖 CONFIG_KERNEL_DEBUG_INFO 先打开、
+# 且 CONFIG_KERNEL_DEBUG_INFO_REDUCED 不能同时打开
+# （见 openwrt/config/Config-kernel.in），之前漏写了这两行前置依赖，
+# 导致 make defconfig 直接判定 BTF 选不上、静默清掉。
+CONFIG_KERNEL_DEBUG_INFO=y
+# CONFIG_KERNEL_DEBUG_INFO_REDUCED is not set
 CONFIG_KERNEL_DEBUG_INFO_BTF=y
 CONFIG_KERNEL_DEBUG_INFO_BTF_MODULES=y
 
