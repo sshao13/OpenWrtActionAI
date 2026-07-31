@@ -108,15 +108,16 @@ jobs:
 
           echo ""
           echo "==== 诊断：luci-i18n-base-zh-cn 在源码树里的真实情况 ===="
-          MK="$(find package feeds -type f -iname 'Makefile' -path '*luci-i18n-base-zh-cn*' 2>/dev/null | head -n 1)"
-          if [ -z "$MK" ]; then
-            echo "  没找到这个包的 Makefile —— 说明 feeds 里根本没有这个包目录，"
-            echo "  可能是 luci feed 版本问题，需要换个包名或检查 feed 完整性"
-          else
-            echo "  找到 Makefile: $MK"
-            echo "  ---- 内容里的 DEPENDS / PKG_NAME 行 ----"
-            grep -nE 'PKG_NAME|DEPENDS' "$MK" || true
-          fi
+          echo "  ---- 含 luci-i18n-base 字样的 Makefile（按内容搜，不按路径搜）----"
+          grep -rl "luci-i18n-base" package feeds --include=Makefile 2>/dev/null | while read -r f; do
+            echo "  文件: $f"
+            grep -nE 'PKG_NAME|LANGUAGES|DEPENDS|LuciModule|i18n' "$f" | head -n 20
+            echo "  ----"
+          done
+
+          echo ""
+          echo "  ---- feeds/luci 下 base 相关目录结构 ----"
+          find feeds/luci -maxdepth 4 -iname '*base*' -type d 2>/dev/null
 
           echo ""
           echo "==== make defconfig 重新跑一遍，把关于这个包的警告过滤出来 ===="
