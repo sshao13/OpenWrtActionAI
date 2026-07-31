@@ -1,0 +1,39 @@
+#!/bin/bash
+# =========================================================
+# diy-feeds.sh
+# 在 ./scripts/feeds update 之前执行，往 feeds.conf.default
+# 追加第三方 feed。
+#
+# 不确定项，第一次跑大概率要根据实际报错调整（我没有条件真的
+# 跑一次全源码编译来验证，只能基于公开资料尽量往对了配）：
+#   1. kenzok8/openwrt-daede 这个 feed 里 Makefile 声明的具体
+#      包名是不是真的叫 "dae" "daed" "luci-app-daede"，需要
+#      实际 feeds install 之后看 package/feeds/daede/ 目录下
+#      真实的目录名才能 100% 确认。
+#   2. dae 是 Go 写的，官方 feeds 自带的 golang 版本可能太旧
+#      编译不过，如果报 golang 版本相关的错，需要换成社区常用的
+#      sbwml/packages_lang_golang 这个更新过的 golang feed。
+# =========================================================
+
+set -eu
+
+cd "$(pwd)"   # 这里的 $PWD 就是 /builder/openwrt（build.yml 里已经 cd 过）
+
+FEEDS_CONF="feeds.conf.default"
+
+echo "==> 追加前 $FEEDS_CONF 内容："
+cat "$FEEDS_CONF"
+
+if ! grep -q "openwrt-daede" "$FEEDS_CONF"; then
+  echo "src-git daede https://github.com/kenzok8/openwrt-daede.git" >> "$FEEDS_CONF"
+fi
+
+echo "==> 追加后 $FEEDS_CONF 内容："
+cat "$FEEDS_CONF"
+
+# ---------------------------------------------------------
+# 备用：如果实测发现官方 golang 包版本编译 dae 报错，取消下面
+# 这段注释，换成社区维护的更新版 golang feed。
+# 参考：https://github.com/sbwml/packages_lang_golang
+# ---------------------------------------------------------
+# echo "src-git golang https://github.com/sbwml/packages_lang_golang.git;24.x" >> "$FEEDS_CONF"
