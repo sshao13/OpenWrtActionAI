@@ -96,7 +96,8 @@ jobs:
           cd /builder/openwrt
           echo "==== 关键包是否真的进了 .config ===="
           for pkg in CONFIG_PACKAGE_dae CONFIG_PACKAGE_daed CONFIG_PACKAGE_luci-app-daede \
-                     CONFIG_KERNEL_DEBUG_INFO CONFIG_KERNEL_DEBUG_INFO_BTF CONFIG_PACKAGE_kmod-tcp-bbr; do
+                     CONFIG_KERNEL_DEBUG_INFO CONFIG_KERNEL_DEBUG_INFO_BTF \
+                     CONFIG_BPF_TOOLCHAIN_HOST CONFIG_PACKAGE_kmod-tcp-bbr; do
             if grep -q "^${pkg}=y" .config; then
               echo "  [OK] $pkg"
             else
