@@ -11,6 +11,12 @@ cat >> .config << 'EOF'
 # ---- LuCI 基础 ----
 CONFIG_PACKAGE_luci=y
 CONFIG_PACKAGE_luci-ssl=y
+# CONFIG_PACKAGE_luci-i18n-base-zh-cn 依赖上层的 "Translations" 菜单里
+# CONFIG_LUCI_LANG_zh-cn 这个总开关先打开（源码里 luci.mk 生成的
+# 每个语言包都写着 default LUCI_LANG_<lang>||(ALL&&m)，光写目标包
+# 本身的 =y 不够，跟之前 BTF 需要先开 CONFIG_KERNEL_DEBUG_INFO 是
+# 同一种"漏写前置依赖"的坑）。
+CONFIG_LUCI_LANG_zh-cn=y
 CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
 
 # ---- daed（走 kenzok8/openwrt-daede 源码 feed）----
@@ -42,10 +48,12 @@ CONFIG_PACKAGE_kmod-xdp-sockets-diag=y
 # ---- BBR 拥塞控制 ----
 CONFIG_PACKAGE_kmod-tcp-bbr=y
 
-# ---- 全锥形 NAT（第三方内核模块，openwrt/packages 里没有，
-#      如果 feeds 里确实搜不到这个包，说明还需要单独加一个
-#      nft-fullcone 的 feed，第一次跑大概率会在这里报缺失）----
-CONFIG_PACKAGE_kmod-nft-fullcone=y
+# ---- 全锥形 NAT：暂不做 ----
+# 对应的 fullcone-nat-nftables/nft-fullcone 项目已归档不再维护，
+# 而且不是装一个内核模块就行——需要同时给 nftables 和 libnftnl
+# 这两个用户态核心组件打补丁才能用，风险是可能把防火墙/NAT
+# 功能编坏，不是"装不上就少个功能"这么简单。已决定暂缓，
+# 不在主线里做，需要的话以后单独开分支尝试。
 
 # ---- 常用工具 ----
 CONFIG_PACKAGE_curl=y
