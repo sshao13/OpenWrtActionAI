@@ -37,3 +37,36 @@ cat "$FEEDS_CONF"
 # 参考：https://github.com/sbwml/packages_lang_golang
 # ---------------------------------------------------------
 # echo "src-git golang https://github.com/sbwml/packages_lang_golang.git;24.x" >> "$FEEDS_CONF"
+
+# =========================================================
+# 【开发分支专用 / 实验性】全锥形 NAT —— openwrt-sonic-fullcone
+#
+# 这个分支专门用来单独验证这一个高风险改动，跟主线（main）
+# 完全隔离。原理上比 nft-fullcone 那条路线更安全一些：不需要
+# 新增内核模块，也不需要给 nftables/libnftnl 打补丁支持新语法，
+# 是直接把 fullcone 逻辑编进 OpenWrt 本来就会编译的
+# nft_masq.ko / xt_MASQUERADE.ko 里。
+#
+# 但依然是给源码树打补丁，依然有风险：
+#   - 该项目明确写着"目前仅测试了 x86 平台的 snapshot 版本"，
+#     不保证跟我们用的 openwrt-25.12 分支 100%兼容
+#   - 补丁应用失败/内核版本对不上，可能导致后面 feeds/编译
+#     直接报错（这种情况下重新触发一次干净的 workflow 就行，
+#     不会污染其它分支）
+#
+# 项目地址：https://github.com/mufeng05/openwrt-sonic-fullcone
+# =========================================================
+echo ""
+echo "==> 【实验性】应用 openwrt-sonic-fullcone 补丁"
+SONIC_SCRIPT_URL="https://raw.githubusercontent.com/mufeng05/openwrt-sonic-fullcone/master/add_sonic_fullcone.sh"
+SONIC_SCRIPT="/tmp/add_sonic_fullcone.sh"
+
+if curl -fsSL "$SONIC_SCRIPT_URL" -o "$SONIC_SCRIPT"; then
+  chmod +x "$SONIC_SCRIPT"
+  echo "==> 下载成功，开始应用补丁（这一步会自动检测内核版本、复制补丁到对应位置）"
+  bash "$SONIC_SCRIPT"
+  echo "==> sonic-fullcone 补丁应用完成"
+else
+  echo "::error::下载 sonic-fullcone 安装脚本失败，这条实验性功能这次跑不了"
+  exit 1
+fi
