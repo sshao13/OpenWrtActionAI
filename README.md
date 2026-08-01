@@ -16,26 +16,33 @@
 
 ## 目前的实测进度
 
-第一次实跑（配置预检阶段）已经确认：
+已经完整跑通"配置预检"（不是真正编译，是编译前几秒钟就能确认的
+阶段），以下全部确认没问题：
 
-- ✅ `CONFIG_PACKAGE_dae`、`CONFIG_PACKAGE_daed`、`CONFIG_PACKAGE_luci-app-daede`
-  包名是对的，`kenzok8/openwrt-daede` 这个 feed 接进来没问题
-- ✅ `CONFIG_PACKAGE_kmod-tcp-bbr` 没问题
-- ❌ `CONFIG_KERNEL_DEBUG_INFO_BTF` 缺失——**已定位原因**：这个内核选项
-  依赖编译环境里有 `pahole`（由 `dwarves` 这个 apt 包提供），CI 环境
-  之前没装，导致 `make defconfig` 阶段被静默清掉。已经在
-  `.github/workflows/build.yml` 里加上 `dwarves`，但这个修复本身
-  还没有实际跑一次验证过。
+- ✅ `dae` / `daed` / `luci-app-daede`（`kenzok8/openwrt-daede` 这个
+  源码 feed 接进来没问题）
+- ✅ 内核原生 BTF（`CONFIG_KERNEL_DEBUG_INFO` + `CONFIG_KERNEL_DEBUG_INFO_BTF`，
+  依赖编译环境装 `dwarves` 提供 `pahole`，已在 `build.yml` 里装好）
+- ✅ eBPF 编译工具链（`CONFIG_BPF_TOOLCHAIN_HOST`，用宿主机的 clang，
+  不用 OpenWrt 自己再编一份）
+- ✅ `kmod-tcp-bbr`
+- ✅ 中文语言包（`CONFIG_LUCI_LANG_zh-cn` + `CONFIG_PACKAGE_luci-i18n-base-zh-cn`，
+  这俩是一对，光装后者不够，前者是它依赖的上层"Translations"总开关）
 
-还没验证过的地方：
+而且已经有一次**完整编译成功**的记录，manifest 里确认 `dae`、`daed`、
+`luci-app-daede` 都真的装进了固件（那次中文语言包还没修，所以固件
+是英文界面；语言包的问题定位并修好之后还没有跑一次完整编译验证，
+理论上应该没问题，但还是建议你实际跑一次确认）。
 
-1. Go 版本是否够新（如果 dae 编译阶段报 golang 相关错误，需要启用
-   `diy-feeds.sh` 里注释掉的社区 golang feed）
-2. `kmod-nft-fullcone`——官方 feed 里没有，还没接第三方源，大概率
-   还是会在配置预检阶段显示缺失（不影响其它包，只是这个功能装不上，
-   之前 ImageBuilder 版本已经验证过官方源确实没有这个包）
-3. 真正完整编译能不能跑通（目前只跑到配置预检这一步，还没进入
-   一两个小时的正式编译阶段）
+## 明确不做的：全锥形 NAT
+
+`kmod-nft-fullcone` 对应的 [nft-fullcone](https://github.com/fullcone-nat-nftables/nft-fullcone)
+项目已经**归档不再维护**，而且它不是装一个内核模块就行——需要同时
+给 `nftables` 和 `libnftnl` 这两个网络核心组件打补丁才能用。风险是
+可能把防火墙/NAT 功能编坏，不是"装不上就少个功能"这么简单，所以
+已经决定**暂缓，不在这份精简版里做**。想要的话建议以后单独开一个
+分支单独折腾，不要和这份主线混在一起，免得一个高风险改动拖累了
+已经跑通的部分。
 
 ## 使用方法
 
@@ -51,10 +58,8 @@
 ```
 
 2. 手动触发一次 Actions（或等每周六的定时任务）。
-3. **重点看"配置预检"这一步的输出**——这一步只要几秒钟，会告诉你
-   `daed`、BTF、BBR 这几个关键开关有没有真的生效。如果有 `[缺失]`，
-   不用等后面一两个小时的编译，直接把这一步的日志发我，我们照
-   之前处理 ImageBuilder 版本的节奏，一个个排查解决。
+3. 看"配置预检"这一步的输出确认关键开关都是 `[OK]`，然后等真正的
+   编译（一到两小时）跑完。
 4. 编译成功后固件在 Actions 的 Artifact 和 Release 里。
 
 ## 后续要加更多插件
