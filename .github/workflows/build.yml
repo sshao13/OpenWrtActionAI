@@ -75,6 +75,19 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+      - name: 【实验性分支专用】诊断 sonic-fullcone 补丁后实际生成的包
+        run: |
+          cd /builder/openwrt
+          echo "==== 补丁应用后，源码树里新出现的 fullcone/sonic 相关目录 ===="
+          find package feeds -maxdepth 5 -iname '*fullcone*' -o -iname '*sonic*' 2>/dev/null
+          echo ""
+          echo "==== 这些目录里的 Makefile PKG_NAME（这就是真实包名，等会写进 diy-config.sh 用得上）===="
+          find package feeds -maxdepth 6 \( -iname '*fullcone*' -o -iname '*sonic*' \) -name Makefile 2>/dev/null | while read -r f; do
+            echo "  文件: $f"
+            grep -nE 'PKG_NAME|^define Package/' "$f" | head -n 10
+            echo "  ----"
+          done
+
       - name: 导入基础配置并追加插件开关
         run: |
           if [ ! -f "$GITHUB_WORKSPACE/$CONFIG_FILE" ]; then
@@ -131,13 +144,13 @@ jobs:
           mkdir -p /builder/artifact
           find bin/targets/x86/64/ -type f \( -name "*.img.gz" -o -name "*.tar.gz" -o -name "*.manifest" \) \
             -exec cp -f {} /builder/artifact/ \;
-          echo "BUILD_TAG=OpenWrt_x86_64_25.12_$(date +'%Y.%m.%d-%H%M')" >> "$GITHUB_ENV"
+          echo "BUILD_TAG=OpenWrt_x86_64_25.12_dev-fullcone_$(date +'%Y.%m.%d-%H%M')" >> "$GITHUB_ENV"
           echo "status=success" >> "$GITHUB_OUTPUT"
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
-          name: OpenWrt-25.12-x86_64-${{ github.sha }}
+          name: OpenWrt-25.12-x86_64-dev-fullcone-${{ github.sha }}
           path: /builder/artifact/
 
       - name: 发布 Release
@@ -145,8 +158,12 @@ jobs:
         if: steps.organize.outputs.status == 'success'
         with:
           tag_name: ${{ env.BUILD_TAG }}
-          name: OpenWrt 25.12 x86-64（全源码编译，精简版）
+          name: 【开发分支/实验性】OpenWrt 25.12 x86-64 + sonic-fullcone
           body: |
+            ⚠️ 这是开发分支的实验性构建，包含还在验证中的全锥形 NAT
+            补丁（openwrt-sonic-fullcone），不代表稳定可用，请勿直接
+            当成日常使用的固件刷到生产环境的路由器上。
+
             源码版本：OpenWrt 25.12（官方，非 ImmortalWrt）
             架构：x86_64 Generic
 
