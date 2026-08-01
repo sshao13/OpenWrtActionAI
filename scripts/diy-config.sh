@@ -12,11 +12,12 @@ cat >> .config << 'EOF'
 CONFIG_PACKAGE_luci=y
 CONFIG_PACKAGE_luci-ssl=y
 # CONFIG_PACKAGE_luci-i18n-base-zh-cn 依赖上层的 "Translations" 菜单里
-# CONFIG_LUCI_LANG_zh-cn 这个总开关先打开（源码里 luci.mk 生成的
-# 每个语言包都写着 default LUCI_LANG_<lang>||(ALL&&m)，光写目标包
-# 本身的 =y 不够，跟之前 BTF 需要先开 CONFIG_KERNEL_DEBUG_INFO 是
-# 同一种"漏写前置依赖"的坑）。
+# 一个总开关先打开，但这个开关的确切符号名还没 100% 确认——
+# 上一轮写 CONFIG_LUCI_LANG_zh-cn 没生效，这次连字符/下划线两种
+# 写法都加上，双保险，不管哪个是真的都能命中，不会因为多写一行
+# 不存在的符号导致构建出错（Kconfig 对不认识的符号只会忽略）。
 CONFIG_LUCI_LANG_zh-cn=y
+CONFIG_LUCI_LANG_zh_cn=y
 CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
 
 # ---- daed（走 kenzok8/openwrt-daede 源码 feed）----
