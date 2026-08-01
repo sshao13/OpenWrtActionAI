@@ -98,7 +98,7 @@ jobs:
           for pkg in CONFIG_PACKAGE_dae CONFIG_PACKAGE_daed CONFIG_PACKAGE_luci-app-daede \
                      CONFIG_KERNEL_DEBUG_INFO CONFIG_KERNEL_DEBUG_INFO_BTF \
                      CONFIG_BPF_TOOLCHAIN_HOST CONFIG_PACKAGE_kmod-tcp-bbr \
-                     CONFIG_LUCI_LANG_zh-cn CONFIG_LUCI_LANG_zh_cn \
+                     CONFIG_LUCI_LANG_zh-cn CONFIG_LUCI_LANG_zh_cn CONFIG_LUCI_LANG_zh_Hans \
                      CONFIG_PACKAGE_luci-i18n-base-zh-cn; do
             if grep -q "^${pkg}=y" .config; then
               echo "  [OK] $pkg"
@@ -108,14 +108,8 @@ jobs:
           done
 
           echo ""
-          echo "==== 诊断：LUCI_LANG_zh-cn 这个符号在生成的 Config.in 里的真实定义 ===="
-          find tmp -name '*.in' 2>/dev/null | while read -r f; do
-            if grep -q 'LUCI_LANG_zh-cn\b' "$f" 2>/dev/null; then
-              echo "  文件: $f"
-              grep -n -B3 -A6 'LUCI_LANG_zh-cn' "$f"
-              echo "  ----"
-            fi
-          done
+          echo "==== 诊断：源码树里所有真实存在的 config LUCI_LANG_* 符号（不管叫什么名字，全列出来）===="
+          find tmp -name '*.in' 2>/dev/null -exec grep -h '^\s*config LUCI_LANG_' {} \; | sort -u
 
       - name: 下载软件包源码
         run: |
