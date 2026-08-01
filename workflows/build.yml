@@ -1,0 +1,173 @@
+name: Build OpenWrt 25.12 x86-64 (full source)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 20 * * 5"   # 每周六北京时间 04:00 自动构建
+
+permissions:
+  contents: write
+
+env:
+  REPO_URL: https://github.com/openwrt/openwrt
+  REPO_BRANCH: openwrt-25.12
+  DIY_FEEDS_SH: scripts/diy-feeds.sh
+  DIY_CONFIG_SH: scripts/diy-config.sh
+  CONFIG_FILE: configs/x86_64.config
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: 检出当前仓库
+        uses: actions/checkout@v4
+
+      - name: 释放磁盘空间
+        run: |
+          # 全源码编译大概需要 25GB+，GitHub 默认 runner 剩余空间不够，
+          # 删掉这次用不到的预装大件（.NET / Android SDK / GHC / CodeQL 等）
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/.ghcup /opt/az /usr/lib/jvm || true
+          df -h
+
+      - name: 初始化编译环境
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang llvm lld ccache gettext \
+            libssl-dev swig unzip zstd libzstd-dev libncurses5-dev libncursesw5-dev \
+            python3-setuptools rsync git pciutils file wget dwarves
+          # dwarves 提供 pahole 命令 —— 内核 Kconfig 里 CONFIG_DEBUG_INFO_BTF
+          # 这个选项依赖编译环境里能找到 pahole，找不到就会被静默判定为
+          # 选不上，make defconfig 阶段直接清掉，跟 .config 里写没写这行
+          # 没关系，是环境缺了这个工具
+          pahole --version
+          sudo timedatectl set-timezone "$TZ"
+          sudo mkdir -p /builder
+          sudo chown "$USER":"$(id -gn)" /builder
+
+      - name: ccache 缓存
+        uses: actions/cache@v4
+        with:
+          path: /builder/ccache
+          key: ccache-${{ env.REPO_BRANCH }}-x86_64-${{ github.run_id }}
+          restore-keys: |
+            ccache-${{ env.REPO_BRANCH }}-x86_64-
+
+      - name: 克隆 OpenWrt 25.12 源码
+        run: git clone --depth 1 "$REPO_URL" -b "$REPO_BRANCH" /builder/openwrt
+
+      - name: 追加第三方 feeds（daed / daede）
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/$DIY_FEEDS_SH" ]; then
+            echo "::error::找不到 $GITHUB_WORKSPACE/$DIY_FEEDS_SH"
+            exit 1
+          fi
+          chmod +x "$GITHUB_WORKSPACE/$DIY_FEEDS_SH"
+          cd /builder/openwrt
+          bash "$GITHUB_WORKSPACE/$DIY_FEEDS_SH"
+
+      - name: 更新与安装 feeds
+        run: |
+          cd /builder/openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: 【实验性分支专用】诊断 sonic-fullcone 补丁后实际生成的包
+        run: |
+          cd /builder/openwrt
+          echo "==== 补丁应用后，源码树里新出现的 fullcone/sonic 相关目录 ===="
+          find package feeds -maxdepth 5 -iname '*fullcone*' -o -iname '*sonic*' 2>/dev/null
+          echo ""
+          echo "==== 这些目录里的 Makefile PKG_NAME（这就是真实包名，等会写进 diy-config.sh 用得上）===="
+          find package feeds -maxdepth 6 \( -iname '*fullcone*' -o -iname '*sonic*' \) -name Makefile 2>/dev/null | while read -r f; do
+            echo "  文件: $f"
+            grep -nE 'PKG_NAME|^define Package/' "$f" | head -n 10
+            echo "  ----"
+          done
+
+      - name: 导入基础配置并追加插件开关
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/$CONFIG_FILE" ]; then
+            echo "::error::找不到 $GITHUB_WORKSPACE/$CONFIG_FILE"
+            exit 1
+          fi
+          if [ ! -f "$GITHUB_WORKSPACE/$DIY_CONFIG_SH" ]; then
+            echo "::error::找不到 $GITHUB_WORKSPACE/$DIY_CONFIG_SH"
+            exit 1
+          fi
+          cd /builder/openwrt
+          cp "$GITHUB_WORKSPACE/$CONFIG_FILE" .config
+          chmod +x "$GITHUB_WORKSPACE/$DIY_CONFIG_SH"
+          bash "$GITHUB_WORKSPACE/$DIY_CONFIG_SH"
+          make defconfig
+
+      - name: 配置预检（提前发现"包被静默移除"的问题，不用等两小时编译完才知道）
+        run: |
+          cd /builder/openwrt
+          echo "==== 关键包是否真的进了 .config ===="
+          for pkg in CONFIG_PACKAGE_dae CONFIG_PACKAGE_daed CONFIG_PACKAGE_luci-app-daede \
+                     CONFIG_KERNEL_DEBUG_INFO CONFIG_KERNEL_DEBUG_INFO_BTF \
+                     CONFIG_BPF_TOOLCHAIN_HOST CONFIG_PACKAGE_kmod-tcp-bbr \
+                     CONFIG_LUCI_LANG_zh-cn CONFIG_LUCI_LANG_zh_cn CONFIG_LUCI_LANG_zh_Hans \
+                     CONFIG_PACKAGE_luci-i18n-base-zh-cn; do
+            if grep -q "^${pkg}=y" .config; then
+              echo "  [OK] $pkg"
+            else
+              echo "  [缺失] $pkg"
+            fi
+          done
+
+          echo ""
+          echo "==== 诊断：源码树里所有真实存在的 config LUCI_LANG_* 符号（不管叫什么名字，全列出来）===="
+          find tmp -name '*.in' 2>/dev/null -exec grep -h '^\s*config LUCI_LANG_' {} \; | sort -u
+
+      - name: 下载软件包源码
+        run: |
+          cd /builder/openwrt
+          make download -j$(nproc)
+          find dl -size -1024c -exec rm -f {} \;
+
+      - name: 编译固件
+        run: |
+          cd /builder/openwrt
+          export CCACHE_DIR=/builder/ccache
+          echo "$(nproc) 线程编译中..."
+          make -j"$(nproc)" || make -j1 V=s
+
+      - name: 整理编译产物
+        id: organize
+        run: |
+          cd /builder/openwrt
+          mkdir -p /builder/artifact
+          find bin/targets/x86/64/ -type f \( -name "*.img.gz" -o -name "*.tar.gz" -o -name "*.manifest" \) \
+            -exec cp -f {} /builder/artifact/ \;
+          echo "BUILD_TAG=OpenWrt_x86_64_25.12_dev-fullcone_$(date +'%Y.%m.%d-%H%M')" >> "$GITHUB_ENV"
+          echo "status=success" >> "$GITHUB_OUTPUT"
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenWrt-25.12-x86_64-dev-fullcone-${{ github.sha }}
+          path: /builder/artifact/
+
+      - name: 发布 Release
+        uses: softprops/action-gh-release@v2
+        if: steps.organize.outputs.status == 'success'
+        with:
+          tag_name: ${{ env.BUILD_TAG }}
+          name: 【开发分支/实验性】OpenWrt 25.12 x86-64 + sonic-fullcone
+          body: |
+            ⚠️ 这是开发分支的实验性构建，包含还在验证中的全锥形 NAT
+            补丁（openwrt-sonic-fullcone），不代表稳定可用，请勿直接
+            当成日常使用的固件刷到生产环境的路由器上。
+
+            源码版本：OpenWrt 25.12（官方，非 ImmortalWrt）
+            架构：x86_64 Generic
+
+            包含：daed + luci-app-daede（走 kenzok8/openwrt-daede 源码 feed）、
+            BBR 拥塞控制、内核原生 BTF（CONFIG_KERNEL_DEBUG_INFO_BTF，
+            这次是真编译进内核的，不再需要额外的 vmlinux-btf 补丁包）。
+          files: /builder/artifact/*
