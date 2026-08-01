@@ -98,56 +98,12 @@ jobs:
           for pkg in CONFIG_PACKAGE_dae CONFIG_PACKAGE_daed CONFIG_PACKAGE_luci-app-daede \
                      CONFIG_KERNEL_DEBUG_INFO CONFIG_KERNEL_DEBUG_INFO_BTF \
                      CONFIG_BPF_TOOLCHAIN_HOST CONFIG_PACKAGE_kmod-tcp-bbr \
-                     CONFIG_PACKAGE_luci-i18n-base-zh-cn; do
+                     CONFIG_LUCI_LANG_zh-cn CONFIG_PACKAGE_luci-i18n-base-zh-cn; do
             if grep -q "^${pkg}=y" .config; then
               echo "  [OK] $pkg"
             else
               echo "  [缺失] $pkg"
             fi
-          done
-
-          echo ""
-          echo "==== 诊断：luci-i18n-base-zh-cn 在源码树里的真实情况 ===="
-          echo "  ---- 含 luci-i18n-base 字样的 Makefile（按内容搜，不按路径搜）----"
-          grep -rl "luci-i18n-base" package feeds --include=Makefile 2>/dev/null | while read -r f; do
-            echo "  文件: $f"
-            grep -nE 'PKG_NAME|LANGUAGES|DEPENDS|LuciModule|i18n' "$f" | head -n 20
-            echo "  ----"
-          done
-
-          echo ""
-          echo "  ---- feeds/luci 下 base 相关目录结构 ----"
-          find feeds/luci -maxdepth 4 -iname '*base*' -type d 2>/dev/null
-
-          echo ""
-          echo "==== 诊断：luci.mk 里真实定义的语言代码列表 ===="
-          LUCI_MK="$(find feeds/luci -maxdepth 1 -name 'luci.mk' 2>/dev/null | head -n 1)"
-          if [ -z "$LUCI_MK" ]; then
-            echo "  没找到 feeds/luci/luci.mk，feeds 目录结构可能变了"
-          else
-            echo "  找到: $LUCI_MK"
-            echo "  ---- LUCI_LANGUAGES 定义 ----"
-            grep -n 'LUCI_LANGUAGES' "$LUCI_MK"
-            echo "  ---- 有没有 zh 相关的语言代码（这里能看出真实代码是 zh-cn 还是 zh_Hans 之类）----"
-            grep -oE '[a-zA-Z_-]*zh[a-zA-Z_-]*' "$LUCI_MK" | sort -u
-          fi
-
-          echo ""
-          echo "  ---- feeds/luci/modules/luci-base/Makefile 里的 LUCI_BASENAME ----"
-          grep -n 'LUCI_BASENAME\|LUCI_LANGUAGES' feeds/luci/modules/luci-base/Makefile 2>/dev/null
-
-          echo ""
-          echo "  ---- feeds 安装后自动生成的、真实存在的 CONFIG_PACKAGE_luci-i18n-* 符号（含 zh 的）----"
-          find tmp -name '*.in' 2>/dev/null -exec grep -l 'luci-i18n' {} \; | while read -r f; do
-            grep -oE 'luci-i18n-base-[a-zA-Z_-]+' "$f" | sort -u
-          done | sort -u
-
-          echo ""
-          echo "==== 诊断：luci-i18n-base-zh-cn 这个符号在生成的 Config.in 里的完整上下文 ===="
-          find tmp -name '*.in' 2>/dev/null -exec grep -l 'PACKAGE_luci-i18n-base-zh-cn' {} \; | while read -r f; do
-            echo "  文件: $f"
-            grep -B8 -A2 'config PACKAGE_luci-i18n-base-zh-cn$' "$f"
-            echo "  ----"
           done
 
       - name: 下载软件包源码
