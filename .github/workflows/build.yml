@@ -38,7 +38,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential clang llvm lld ccache gettext \
             libssl-dev swig unzip zstd libzstd-dev libncurses5-dev libncursesw5-dev \
-            python3-setuptools rsync git pciutils file wget dwarves
+            python3-setuptools rsync git pciutils file wget dwarves \
+            autoconf automake libtool autopoint
           # dwarves 提供 pahole 命令 —— 内核 Kconfig 里 CONFIG_DEBUG_INFO_BTF
           # 这个选项依赖编译环境里能找到 pahole，找不到就会被静默判定为
           # 选不上，make defconfig 阶段直接清掉，跟 .config 里写没写这行
@@ -86,7 +87,7 @@ jobs:
             echo "  文件: $f"
             grep -nE 'PKG_NAME|^define Package/' "$f" | head -n 10
             echo "  ----"
-          done
+            done
 
       - name: 导入基础配置并追加插件开关
         run: |
@@ -129,6 +130,12 @@ jobs:
           cd /builder/openwrt
           make download -j$(nproc)
           find dl -size -1024c -exec rm -f {} \;
+
+      - name: 修复 Autotools 文件时间戳补丁
+        run: |
+          cd /builder/openwrt
+          # 防患于未然：更新已预下载或打过补丁的构建文件时间戳，防止触发 automake 重新生成逻辑
+          [ -d build_dir ] && find build_dir/ -type f -exec touch {} + || true
 
       - name: 编译固件
         run: |
