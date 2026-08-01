@@ -38,13 +38,24 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential clang llvm lld ccache gettext \
             libssl-dev swig unzip zstd libzstd-dev libncurses5-dev libncursesw5-dev \
-            python3-setuptools rsync git pciutils file wget dwarves \
-            autoconf automake libtool autopoint
+            python3-setuptools rsync git pciutils file wget dwarves autoconf libtool
           # dwarves 提供 pahole 命令 —— 内核 Kconfig 里 CONFIG_DEBUG_INFO_BTF
           # 这个选项依赖编译环境里能找到 pahole，找不到就会被静默判定为
           # 选不上，make defconfig 阶段直接清掉，跟 .config 里写没写这行
           # 没关系，是环境缺了这个工具
           pahole --version
+
+          # 【开发分支专用】sonic-fullcone 补丁改动了 libnftnl 的
+          # Makefile.am / configure.ac，触发重新生成构建脚本时
+          # 指定死了要用 automake-1.17，但 Ubuntu 24.04 默认源只有
+          # 1.16.5。automake-1.17 从 Ubuntu 25.04 开始才进默认源，
+          # 这里直接下载对应 .deb 手动装（它是独立带版本号的命令
+          # /usr/bin/automake-1.17，跟默认版本共存，不会互相覆盖）。
+          AUTOMAKE117_DEB="automake_1.17-4ubuntu1_all.deb"
+          curl -fsSL "https://mirror.arizona.edu/ubuntu/pool/main/a/automake-1.17/${AUTOMAKE117_DEB}" -o "/tmp/${AUTOMAKE117_DEB}" \
+            || curl -fsSL "http://archive.ubuntu.com/ubuntu/pool/main/a/automake-1.17/${AUTOMAKE117_DEB}" -o "/tmp/${AUTOMAKE117_DEB}"
+          sudo dpkg -i "/tmp/${AUTOMAKE117_DEB}" || sudo apt-get install -f -y
+          automake-1.17 --version
           sudo timedatectl set-timezone "$TZ"
           sudo mkdir -p /builder
           sudo chown "$USER":"$(id -gn)" /builder
@@ -87,7 +98,7 @@ jobs:
             echo "  文件: $f"
             grep -nE 'PKG_NAME|^define Package/' "$f" | head -n 10
             echo "  ----"
-            done
+          done
 
       - name: 导入基础配置并追加插件开关
         run: |
@@ -131,11 +142,17 @@ jobs:
           make download -j$(nproc)
           find dl -size -1024c -exec rm -f {} \;
 
-      - name: 修复 Autotools 文件时间戳补丁
+      - name: 【开发分支专用】把 automake-1.17 放进 OpenWrt 内部工具链路径
         run: |
-          cd /builder/openwrt
-          # 防患于未然：更新已预下载或打过补丁的构建文件时间戳，防止触发 automake 重新生成逻辑
-          [ -d build_dir ] && find build_dir/ -type f -exec touch {} + || true
+          # OpenWrt 编译每个包的时候，用的是自己精心构造的一份 PATH
+          # （主要指向 staging_dir/host/bin 这些内部目录），不是系统级
+          # 安装时那份 PATH——所以就算 apt 装了 automake-1.17，包编译
+          # 阶段也看不到，得直接放进它自己会找工具的目录里。
+          # 这里提前 mkdir，就算 OpenWrt 自己的 tools/automake 这时候
+          # 还没编译出东西也没关系，文件名不冲突，后面会正常并存。
+          mkdir -p /builder/openwrt/staging_dir/host/bin
+          ln -sf "$(command -v automake-1.17)" /builder/openwrt/staging_dir/host/bin/automake-1.17
+          ls -la /builder/openwrt/staging_dir/host/bin/automake-1.17
 
       - name: 编译固件
         run: |
