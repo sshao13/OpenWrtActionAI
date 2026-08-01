@@ -106,6 +106,16 @@ jobs:
             fi
           done
 
+          echo ""
+          echo "==== 诊断：LUCI_LANG_zh-cn 这个符号在生成的 Config.in 里的真实定义 ===="
+          find tmp -name '*.in' 2>/dev/null | while read -r f; do
+            if grep -q 'LUCI_LANG_zh-cn\b' "$f" 2>/dev/null; then
+              echo "  文件: $f"
+              grep -n -B3 -A6 'LUCI_LANG_zh-cn' "$f"
+              echo "  ----"
+            fi
+          done
+
       - name: 下载软件包源码
         run: |
           cd /builder/openwrt
