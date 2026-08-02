@@ -12,6 +12,7 @@ env:
   REPO_URL: https://github.com/openwrt/openwrt
   REPO_BRANCH: openwrt-25.12
   DIY_FEEDS_SH: scripts/diy-feeds.sh
+  DIY_FULLCONE_LUCI_SH: scripts/diy-fullcone-luci.sh
   DIY_CONFIG_SH: scripts/diy-config.sh
   CONFIG_FILE: configs/x86_64.config
   TZ: Asia/Shanghai
@@ -86,6 +87,16 @@ jobs:
           cd /builder/openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+
+      - name: 【开发分支专用】feeds 装完后再应用 sonic-fullcone（这次能正确处理 LuCI 部分）
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/$DIY_FULLCONE_LUCI_SH" ]; then
+            echo "::error::找不到 $GITHUB_WORKSPACE/$DIY_FULLCONE_LUCI_SH"
+            exit 1
+          fi
+          chmod +x "$GITHUB_WORKSPACE/$DIY_FULLCONE_LUCI_SH"
+          cd /builder/openwrt
+          bash "$GITHUB_WORKSPACE/$DIY_FULLCONE_LUCI_SH"
 
       - name: 【实验性分支专用】诊断 sonic-fullcone 补丁后实际生成的包
         run: |
