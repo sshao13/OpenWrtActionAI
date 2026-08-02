@@ -64,8 +64,13 @@ CONFIG_PACKAGE_wget-ssl=y
 CONFIG_PACKAGE_nano=y
 CONFIG_PACKAGE_htop=y
 
-# ---- 在线 OTA 升级 ----
-CONFIG_PACKAGE_luci-app-attendedsysupgrade=y
+# ---- 在线 OTA 升级：不装 ----
+# luci-app-attendedsysupgrade 已删除。这个功能默认连的是官方
+# 构建服务，只认官方原版包/feed，不知道我们额外接的 daed/daede、
+# 打开的内核 BTF 等自定义配置。真去点"搜索固件更新"，大概率会
+# 拿到一个不含这些自定义内容的"纯官方"固件，刷上去等于悄悄把
+# 自定义功能全部升没，自己还没意识到。以后升级固件老老实实回
+# GitHub Actions 重新构建、手动下载刷机，别用这个功能。
 
 # ---- Intel 显卡 / HDMI ----
 CONFIG_PACKAGE_kmod-drm-i915=y
