@@ -135,7 +135,9 @@ jobs:
                      CONFIG_KERNEL_DEBUG_INFO CONFIG_KERNEL_DEBUG_INFO_BTF \
                      CONFIG_BPF_TOOLCHAIN_HOST CONFIG_PACKAGE_kmod-tcp-bbr \
                      CONFIG_LUCI_LANG_zh-cn CONFIG_LUCI_LANG_zh_cn CONFIG_LUCI_LANG_zh_Hans \
-                     CONFIG_PACKAGE_luci-i18n-base-zh-cn; do
+                     CONFIG_PACKAGE_luci-i18n-base-zh-cn \
+                     CONFIG_PACKAGE_luci-app-cpu-status CONFIG_PACKAGE_luci-app-temp-status \
+                     CONFIG_PACKAGE_luci-app-cpu-perf; do
             if grep -q "^${pkg}=y" .config; then
               echo "  [OK] $pkg"
             else
