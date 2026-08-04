@@ -28,6 +28,18 @@ if ! grep -q "openwrt-daede" "$FEEDS_CONF"; then
   echo "src-git daede https://github.com/kenzok8/openwrt-daede.git" >> "$FEEDS_CONF"
 fi
 
+# gSpotx2f 维护的三个状态插件：CPU 负载 / 温度 / 频率管理，
+# 纯 Lua/JS 写的，没有 C 代码要编译，接成 feed 风险很低。
+if ! grep -q "luci-app-cpu-status\b" "$FEEDS_CONF"; then
+  echo "src-git cpu-status https://github.com/gSpotx2f/luci-app-cpu-status.git" >> "$FEEDS_CONF"
+fi
+if ! grep -q "luci-app-temp-status" "$FEEDS_CONF"; then
+  echo "src-git temp-status https://github.com/gSpotx2f/luci-app-temp-status.git" >> "$FEEDS_CONF"
+fi
+if ! grep -q "luci-app-cpu-perf" "$FEEDS_CONF"; then
+  echo "src-git cpu-perf https://github.com/gSpotx2f/luci-app-cpu-perf.git" >> "$FEEDS_CONF"
+fi
+
 echo "==> 追加后 $FEEDS_CONF 内容："
 cat "$FEEDS_CONF"
 
