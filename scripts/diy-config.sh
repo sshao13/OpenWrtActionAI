@@ -77,6 +77,14 @@ CONFIG_PACKAGE_kmod-drm-i915=y
 
 # ---- RTC ----
 CONFIG_PACKAGE_kmod-rtc-pcf8563=y
+
+# ---- CPU 负载 / 温度 / 频率管理（gSpotx2f 维护，走 feed 编译）----
+# 包名如果实测对不上，看 package/feeds/cpu-status(/temp-status/cpu-perf)/
+# 目录下的真实目录名再改。这三个插件没有确认过有没有官方中文翻译，
+# 先不装 i18n 包，装完看界面语言，需要的话再补。
+CONFIG_PACKAGE_luci-app-cpu-status=y
+CONFIG_PACKAGE_luci-app-temp-status=y
+CONFIG_PACKAGE_luci-app-cpu-perf=y
 EOF
 
 echo "==> 已追加插件/优化开关，追加后的行数：$(wc -l < .config)"
