@@ -44,4 +44,8 @@ git clone --depth=1 https://github.com/gSpotx2f/luci-app-cpu-perf.git package/lu
 rm -rf package/luci-app-momo
 git clone --depth=1 https://github.com/nikkinikki-org/OpenWrt-momo.git package/luci-app-momo
 
+# 克隆 HomeProxy 及其依赖
+rm -rf package/luci-app-homeproxy
+git clone --depth=1 https://github.com/VIKINGTOGO/luci-app-homeproxy.git package/luci-app-homeproxy
+
 echo "==> 独立软件包拉取完毕。"
