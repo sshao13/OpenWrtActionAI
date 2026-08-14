@@ -40,4 +40,8 @@ git clone --depth=1 https://github.com/gSpotx2f/luci-app-cpu-status.git package/
 git clone --depth=1 https://github.com/gSpotx2f/luci-app-temp-status.git package/luci-app-temp-status
 git clone --depth=1 https://github.com/gSpotx2f/luci-app-cpu-perf.git package/luci-app-cpu-perf
 
+# 克隆 luci-app-momo 源码到 package/ 目录
+rm -rf package/luci-app-momo
+git clone --depth=1 https://github.com/nikkinikki-org/OpenWrt-momo.git package/luci-app-momo
+
 echo "==> 独立软件包拉取完毕。"
