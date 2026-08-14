@@ -51,12 +51,15 @@ CONFIG_PACKAGE_kmod-xdp-sockets-diag=y
 # ---- BBR 拥塞控制 ----
 CONFIG_PACKAGE_kmod-tcp-bbr=y
 
-# ---- 全锥形 NAT：暂不做 ----
-# 对应的 fullcone-nat-nftables/nft-fullcone 项目已归档不再维护，
-# 而且不是装一个内核模块就行——需要同时给 nftables 和 libnftnl
-# 这两个用户态核心组件打补丁才能用，风险是可能把防火墙/NAT
-# 功能编坏，不是"装不上就少个功能"这么简单。已决定暂缓，
-# 不在主线里做，需要的话以后单独开分支尝试。
+# ---- 全锥形 NAT：einat-ebpf（纯 eBPF，不打补丁）----
+# fullcone-nat-nftables/nft-fullcone 那条路线（给 nftables/libnftnl
+# 打补丁）已归档不维护，风险也高，主线不用，只留在 dev-fullcone
+# 分支单独验证。这里换成 einat-ebpf：纯 eBPF 实现，不碰任何核心
+# 网络组件源码，依赖内核 BPF+BTF（前面已经为了 daed 开好了，
+# 现成能用）。包名如果实测对不上，看
+# package/feeds/einat_ebpf(/luci_app_einat)/ 目录下的真实目录名再改。
+CONFIG_PACKAGE_einat-ebpf=y
+CONFIG_PACKAGE_luci-app-einat=y
 
 # ---- 常用工具 ----
 CONFIG_PACKAGE_curl=y
