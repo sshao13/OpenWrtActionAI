@@ -43,6 +43,9 @@ CONFIG_PACKAGE_kmod-xdp-sockets-diag=y
 CONFIG_PACKAGE_luci-app-momo=y
 # 如果需要简体中文语言包，可以同时加入：
 CONFIG_PACKAGE_luci-i18n-momo-zh-cn=y
+# ---- HomeProxy ----
+CONFIG_PACKAGE_luci-app-homeproxy=y
+CONFIG_PACKAGE_luci-i18n-homeproxy-zh-cn=y
 
 # 增强 eBPF / daed 网络接口支持
 CONFIG_PACKAGE_kmod-veth=y
