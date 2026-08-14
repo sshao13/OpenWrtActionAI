@@ -25,14 +25,14 @@ echo "==> 追加后 $FEEDS_CONF 内容："
 cat "$FEEDS_CONF"
 
 # ---------------------------------------------------------
-# 2. 单个软件包（无法作为 Feed 的仓库）直接 clone 到 package/ 目录
+# 2. 单个软件包（直接 clone 到 package/ 目录）
 # ---------------------------------------------------------
 echo "==> 开始克隆独立软件包到 package/ 目录..."
 
-# einat-ebpf 及其 LuCI 界面
+# einat-ebpf 及其 LuCI 界面（修正为正确的 muink 官方仓库地址）
 rm -rf package/einat-ebpf package/luci-app-einat
-git clone --depth=1 https://github.com/rtk-inc/einat-ebpf.git package/einat-ebpf
-git clone --depth=1 https://github.com/rtk-inc/luci-app-einat.git package/luci-app-einat
+git clone --depth=1 https://github.com/muink/openwrt-einat-ebpf.git package/einat-ebpf
+git clone --depth=1 https://github.com/muink/luci-app-einat.git package/luci-app-einat
 
 # gSpotx2f 状态组件
 rm -rf package/luci-app-cpu-status package/luci-app-temp-status package/luci-app-cpu-perf
