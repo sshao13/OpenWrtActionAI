@@ -38,7 +38,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential clang llvm lld ccache gettext \
             libssl-dev swig unzip zstd libzstd-dev libncurses5-dev libncursesw5-dev \
-            python3-setuptools rsync git pciutils file wget dwarves
+            python3-setuptools rsync git pciutils file wget dwarves \
+            libelf-dev zlib1g-dev
+          # libelf-dev、zlib1g-dev 是 einat-ebpf 官方文档写明要求的编译依赖
           # dwarves 提供 pahole 命令 —— 内核 Kconfig 里 CONFIG_DEBUG_INFO_BTF
           # 这个选项依赖编译环境里能找到 pahole，找不到就会被静默判定为
           # 选不上，make defconfig 阶段直接清掉，跟 .config 里写没写这行
@@ -101,7 +103,8 @@ jobs:
                      CONFIG_LUCI_LANG_zh-cn CONFIG_LUCI_LANG_zh_cn CONFIG_LUCI_LANG_zh_Hans \
                      CONFIG_PACKAGE_luci-i18n-base-zh-cn \
                      CONFIG_PACKAGE_luci-app-cpu-status CONFIG_PACKAGE_luci-app-temp-status \
-                     CONFIG_PACKAGE_luci-app-cpu-perf; do
+                     CONFIG_PACKAGE_luci-app-cpu-perf \
+                     CONFIG_PACKAGE_einat-ebpf CONFIG_PACKAGE_luci-app-einat; do
             if grep -q "^${pkg}=y" .config; then
               echo "  [OK] $pkg"
             else
