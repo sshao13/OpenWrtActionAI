@@ -149,7 +149,8 @@ jobs:
                      CONFIG_PACKAGE_luci-app-cpu-status CONFIG_PACKAGE_luci-app-temp-status \
                      CONFIG_PACKAGE_luci-app-cpu-perf \
                      CONFIG_PACKAGE_einat-ebpf CONFIG_PACKAGE_luci-app-einat \
-                     CONFIG_PACKAGE_honk CONFIG_PACKAGE_luci-app-honk; do
+                     CONFIG_PACKAGE_honk CONFIG_PACKAGE_luci-app-honk \
+                     CONFIG_PACKAGE_kmod-tun; do
             if grep -q "^${pkg}=y" .config; then
               echo "  [OK] $pkg"
             else
@@ -160,6 +161,15 @@ jobs:
           echo ""
           echo "==== 诊断：源码树里所有真实存在的 config LUCI_LANG_* 符号（不管叫什么名字，全列出来）===="
           find tmp -name '*.in' 2>/dev/null -exec grep -h '^\s*config LUCI_LANG_' {} \; | sort -u
+
+      - name: kmod 预检（列出没进 .config 的内核模块）
+        run: |
+          cd /builder/openwrt
+          miss=0
+          for k in $(grep -oE '^CONFIG_PACKAGE_kmod-[A-Za-z0-9_.-]+=y' "$GITHUB_WORKSPACE/scripts/diy-config.sh" | sed 's/=y//'); do
+            if grep -q "^${k}=y" .config; then :; else echo "  [缺失] $k"; miss=$((miss+1)); fi
+          done
+          echo "kmod 缺失数量：$miss（缺失的多半是名字在 25.12 不存在，或依赖不满足，不影响其余的编译）"
 
       - name: 下载软件包源码
         run: |
