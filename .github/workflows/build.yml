@@ -77,6 +77,22 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+      - name: 升级 Go 工具链（dae 最新版要求 Go >= 1.27）
+        run: |
+          # openwrt-25.12 的 feeds/packages 里 golang 是 1.26.x，而 dae 的
+          # go.mod 要求 >= 1.27.0（GOTOOLCHAIN=local 不会自动下载新版）。
+          # 从官方 packages master 取 lang/golang 整个目录替换（含 golang-build.mk 等
+          # 配套文件，必须整体替换，不能只换 Makefile）。
+          cd /builder/openwrt
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/openwrt/packages.git /builder/packages-master
+          git -C /builder/packages-master sparse-checkout set lang/golang
+          rm -rf feeds/packages/lang/golang
+          cp -r /builder/packages-master/lang/golang feeds/packages/lang/golang
+          echo "==== 替换后的 Go 版本 ===="
+          grep -nE 'GO_VERSION_(MAJOR_MINOR|PATCH)' feeds/packages/lang/golang/golang/Makefile | head
+          ./scripts/feeds install -a -f -p packages golang || true
+          ./scripts/feeds install -a
+
       - name: 导入基础配置并追加插件开关
         run: |
           if [ ! -f "$GITHUB_WORKSPACE/$CONFIG_FILE" ]; then
