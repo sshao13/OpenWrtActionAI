@@ -88,10 +88,18 @@ jobs:
           git -C /builder/packages-master sparse-checkout set lang/golang
           rm -rf feeds/packages/lang/golang
           cp -r /builder/packages-master/lang/golang feeds/packages/lang/golang
-          echo "==== 替换后的 Go 版本 ===="
-          grep -nE 'GO_VERSION_(MAJOR_MINOR|PATCH)' feeds/packages/lang/golang/golang/Makefile | head
-          ./scripts/feeds install -a -f -p packages golang || true
-          ./scripts/feeds install -a
+          echo "==== 替换后 lang/golang 目录 ===="
+          ls feeds/packages/lang/golang
+          grep -nE 'GO_VERSION_(MAJOR_MINOR|PATCH)' feeds/packages/lang/golang/golang1.2*/Makefile
+          # 关键：feeds 的索引（feeds/packages.index）是 update 时生成的，
+          # 里面还记着旧的 golang1.26，不刷新索引的话 install 还会去找旧包。
+          # 先清掉旧的符号链接，刷新索引，再强制重装。
+          rm -rf package/feeds/packages/golang*
+          ./scripts/feeds update -i packages
+          ./scripts/feeds install -a -f
+          echo "==== 安装后 package/feeds/packages 里的 golang ===="
+          ls -d package/feeds/packages/golang*
+          test -e package/feeds/packages/golang1.27 || { echo "::error::golang1.27 没装上"; exit 1; }
 
       - name: 导入基础配置并追加插件开关
         run: |
@@ -120,7 +128,8 @@ jobs:
                      CONFIG_PACKAGE_luci-i18n-base-zh-cn \
                      CONFIG_PACKAGE_luci-app-cpu-status CONFIG_PACKAGE_luci-app-temp-status \
                      CONFIG_PACKAGE_luci-app-cpu-perf \
-                     CONFIG_PACKAGE_einat-ebpf CONFIG_PACKAGE_luci-app-einat; do
+                     CONFIG_PACKAGE_einat-ebpf CONFIG_PACKAGE_luci-app-einat \
+                     CONFIG_PACKAGE_honk CONFIG_PACKAGE_luci-app-honk; do
             if grep -q "^${pkg}=y" .config; then
               echo "  [OK] $pkg"
             else
