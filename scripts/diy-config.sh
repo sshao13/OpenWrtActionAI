@@ -61,7 +61,7 @@ CONFIG_PACKAGE_kmod-tcp-bbr=y
 CONFIG_PACKAGE_einat-ebpf=y
 CONFIG_PACKAGE_luci-app-einat=y
 
-# ---- honk（eBPF 透明代理，走 sshao13/openwrt-honk feed）----
+# ---- honk（eBPF 透明代理，走 kenzok8/openwrt-honk feed）----
 # 内核侧的 BPF/BTF/cgroup 开关上面已经为 daed 开好了；honk 另外要 nft queue。
 # 注意：honk 和 dae/daed 都要占根 cgroup 的 BPF 槽位，两个不能同时启用，
 # 用哪个就把另一个在 LuCI 里停掉并禁用开机自启。
@@ -70,6 +70,48 @@ CONFIG_PACKAGE_luci-app-honk=y
 CONFIG_PACKAGE_kmod-nft-queue=y
 CONFIG_PACKAGE_kmod-veth=y
 CONFIG_PACKAGE_kmod-sched-bpf=y
+
+# ---- 常用内核模块（kmod）----
+# 自编内核的 kmod 哈希和官方源不一样，刷机后再 apk add kmod-xxx 是装不上的，
+# 所以常用的内核模块必须在编译时就选进固件。名字写错的话 Kconfig 会静默忽略，
+# build.yml 的"kmod 预检"会把没进 .config 的列出来。
+# -- 虚拟网卡 / VPN / 隧道 --
+CONFIG_PACKAGE_kmod-tun=y
+CONFIG_PACKAGE_kmod-wireguard=y
+CONFIG_PACKAGE_kmod-macvlan=y
+CONFIG_PACKAGE_kmod-dummy=y
+CONFIG_PACKAGE_kmod-ifb=y
+CONFIG_PACKAGE_kmod-gre=y
+CONFIG_PACKAGE_kmod-ipip=y
+CONFIG_PACKAGE_kmod-sit=y
+CONFIG_PACKAGE_kmod-ip6-tunnel=y
+CONFIG_PACKAGE_kmod-vxlan=y
+CONFIG_PACKAGE_kmod-br-netfilter=y
+# -- 透明代理 / 防火墙（OpenClash、Passwall、sing-box 一类常用）--
+CONFIG_PACKAGE_kmod-nft-tproxy=y
+CONFIG_PACKAGE_kmod-nft-socket=y
+CONFIG_PACKAGE_kmod-nft-compat=y
+CONFIG_PACKAGE_kmod-nf-conntrack-netlink=y
+# -- 流控 / QoS --
+CONFIG_PACKAGE_kmod-sched-cake=y
+# -- 存储：U 盘 / 硬盘 / NVMe / 文件系统 --
+CONFIG_PACKAGE_kmod-ata-ahci=y
+CONFIG_PACKAGE_kmod-nvme=y
+CONFIG_PACKAGE_kmod-usb-core=y
+CONFIG_PACKAGE_kmod-usb3=y
+CONFIG_PACKAGE_kmod-usb-storage=y
+CONFIG_PACKAGE_kmod-usb-storage-uas=y
+CONFIG_PACKAGE_kmod-fs-ext4=y
+CONFIG_PACKAGE_kmod-fs-exfat=y
+CONFIG_PACKAGE_kmod-fs-ntfs3=y
+# -- USB 网卡 / 手机共享网络 --
+CONFIG_PACKAGE_kmod-usb-net-cdc-ether=y
+CONFIG_PACKAGE_kmod-usb-net-rndis=y
+CONFIG_PACKAGE_kmod-usb-net-rtl8152=y
+CONFIG_PACKAGE_kmod-usb-net-asix-ax88179=y
+# -- 温度传感器（给 luci-app-temp-status 读 CPU 温度；Wyse 5070 是 Intel 用 coretemp）--
+CONFIG_PACKAGE_kmod-hwmon-coretemp=y
+CONFIG_PACKAGE_kmod-hwmon-k10temp=y
 
 # ---- 常用工具 ----
 CONFIG_PACKAGE_curl=y
