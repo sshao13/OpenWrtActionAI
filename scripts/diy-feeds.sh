@@ -36,15 +36,6 @@ fi
 
 # gSpotx2f 维护的三个状态插件：CPU 负载 / 温度 / 频率管理，
 # 纯 Lua/JS 写的，没有 C 代码要编译，接成 feed 风险很低。
-if ! grep -q "luci-app-cpu-status\b" "$FEEDS_CONF"; then
-  echo "src-git cpu_status https://github.com/gSpotx2f/luci-app-cpu-status.git" >> "$FEEDS_CONF"
-fi
-if ! grep -q "luci-app-temp-status" "$FEEDS_CONF"; then
-  echo "src-git temp_status https://github.com/gSpotx2f/luci-app-temp-status.git" >> "$FEEDS_CONF"
-fi
-if ! grep -q "luci-app-cpu-perf" "$FEEDS_CONF"; then
-  echo "src-git cpu_perf https://github.com/gSpotx2f/luci-app-cpu-perf.git" >> "$FEEDS_CONF"
-fi
 
 # einat-ebpf：纯 eBPF 实现的全锥形 NAT，不需要给 nftables/libnftnl
 # 打补丁（跟 dev-fullcone 分支那套 sonic-fullcone 方案不是一回事，
@@ -53,12 +44,6 @@ fi
 # 正好现成能用，不用再额外解决一次。
 # 项目地址：https://github.com/muink/openwrt-einat-ebpf
 #           https://github.com/muink/luci-app-einat
-if ! grep -q "openwrt-einat-ebpf" "$FEEDS_CONF"; then
-  echo "src-git einat_ebpf https://github.com/muink/openwrt-einat-ebpf.git" >> "$FEEDS_CONF"
-fi
-if ! grep -q "luci-app-einat" "$FEEDS_CONF"; then
-  echo "src-git luci_app_einat https://github.com/muink/luci-app-einat.git" >> "$FEEDS_CONF"
-fi
 
 # honk：dae 风格的 eBPF 透明代理（honk 核心 + Doona 网页界面 + luci-app-honk）。
 # 核心和 Doona 都是预编译归档，编译时从 GitHub Releases 下载并校验，不需要 Rust 工具链。
@@ -66,6 +51,26 @@ fi
 if ! grep -q "openwrt-honk" "$FEEDS_CONF"; then
   echo "src-git honk https://github.com/kenzok8/openwrt-honk.git" >> "$FEEDS_CONF"
 fi
+
+# ---------------------------------------------------------
+# 单包仓库（Makefile 直接在仓库根目录）：不能当 feed 用。
+# feeds 只扫描子目录里的包，根目录就是包本身的仓库会被判成 "index missing"
+# 整个跳过（实测 cpu_status/temp_status/cpu_perf/einat 全被跳过）。
+# 正确做法是直接 clone 到 package/ 下，编译系统会递归扫描 package/。
+# ---------------------------------------------------------
+mkdir -p package/custom
+clone_pkg() {
+  local url="$1" dir="package/custom/$2"
+  rm -rf "$dir"
+  git clone --depth 1 "$url" "$dir"
+}
+clone_pkg https://github.com/gSpotx2f/luci-app-cpu-status.git luci-app-cpu-status
+clone_pkg https://github.com/gSpotx2f/luci-app-temp-status.git luci-app-temp-status
+clone_pkg https://github.com/gSpotx2f/luci-app-cpu-perf.git luci-app-cpu-perf
+clone_pkg https://github.com/muink/openwrt-einat-ebpf.git openwrt-einat-ebpf
+clone_pkg https://github.com/muink/luci-app-einat.git luci-app-einat
+echo "==> package/custom 内容："
+ls package/custom
 
 echo "==> 追加后 $FEEDS_CONF 内容："
 cat "$FEEDS_CONF"
