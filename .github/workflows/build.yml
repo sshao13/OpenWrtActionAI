@@ -111,14 +111,15 @@ jobs:
           echo "==== feeds/ 目录 ===="
           ls feeds
           echo "==== 各 feed 在 package/feeds 下装进来的包 ===="
-          for f in daede cpu_status temp_status cpu_perf einat_ebpf luci_app_einat honk; do
+          for f in daede honk; do
             n=$(ls package/feeds/$f 2>/dev/null | wc -l)
             echo "  $f: $n 个包  ($(ls package/feeds/$f 2>/dev/null | tr '\n' ' '))"
           done
-          echo "==== 关键包的 Makefile 位置 ===="
-          find feeds -maxdepth 3 -name Makefile \( -path '*cpu*' -o -path '*temp*' -o -path '*einat*' \) 2>/dev/null
-          echo "==== feeds 索引里有没有这些包 ===="
-          grep -hE '^Package: (luci-app-cpu-status|luci-app-temp-status|luci-app-cpu-perf|einat-ebpf|luci-app-einat)$' feeds/*.index || echo "  索引里一个都没有"
+          echo "==== package/custom（直接 clone 的单包仓库）===="
+          ls package/custom
+          for d in luci-app-cpu-status luci-app-temp-status luci-app-cpu-perf openwrt-einat-ebpf luci-app-einat; do
+            test -f package/custom/$d/Makefile || { echo "::error::package/custom/$d/Makefile 不存在"; exit 1; }
+          done
 
       - name: 导入基础配置并追加插件开关
         run: |
