@@ -95,7 +95,9 @@ jobs:
           # 里面还记着旧的 golang1.26，不刷新索引的话 install 还会去找旧包。
           # 先清掉旧的符号链接，刷新索引，再强制重装。
           rm -rf package/feeds/packages/golang*
-          ./scripts/feeds update -i packages
+          # 注意：-i 后面不能只写 packages。只重建一个 feed 的索引，别的 feed
+          # （cpu_status/einat 等单包 feed）会被报 "index missing" 而整个跳过安装。
+          ./scripts/feeds update -i
           ./scripts/feeds install -a -f
           echo "==== 安装后 package/feeds/packages 里的 golang ===="
           ls -d package/feeds/packages/golang*
